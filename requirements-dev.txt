@@ -1,0 +1,15 @@
+pytest==7.4.4
+pytest-asyncio==0.23.5
+watchdog==3.0.0
+playwright==1.41.1
+pytesseract==0.3.10
+opencv-python==4.9.0.80
+numpy==1.26.3
+Pillow==10.2.0
+requests==2.31.0
+pyzbar==0.1.9
+scikit-learn==1.4.0
+PyPDF2==3.0.1
+SpeechRecognition==3.10.1
+pydub==0.25.1
+openai==1.12.0
