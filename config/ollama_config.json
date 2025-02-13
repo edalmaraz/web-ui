@@ -1,0 +1,18 @@
+{
+    "model": "deepseek-r1:70b",
+    "gpu_layers": 68,
+    "context_window": 8192,
+    "num_gpu": 1,
+    "num_thread": 16,
+    "batch_size": 8,
+    "tensor_split": [1],
+    "cuda_memory_fraction": 0.9,
+    "rope_scaling": {
+        "type": "dynamic",
+        "factor": 2.0
+    },
+    "f16_kv": true,
+    "use_mmap": true,
+    "numa": false,
+    "low_vram": false
+}

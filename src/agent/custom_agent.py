@@ -22,9 +22,9 @@ from browser_use.browser.context import BrowserContext
 from browser_use.browser.views import BrowserStateHistory
 from browser_use.controller.service import Controller
 from browser_use.telemetry.views import (
-	AgentEndTelemetryEvent,
-	AgentRunTelemetryEvent,
-	AgentStepTelemetryEvent,
+    AgentEndTelemetryEvent,
+    AgentRunTelemetryEvent,
+    AgentStepTelemetryEvent,
 )
 from browser_use.utils import time_execution_async
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -42,42 +42,44 @@ logger = logging.getLogger(__name__)
 
 class CustomAgent(Agent):
     def __init__(
-            self,
-            task: str,
-            llm: BaseChatModel,
-            add_infos: str = "",
-            browser: Browser | None = None,
-            browser_context: BrowserContext | None = None,
-            controller: Controller = Controller(),
-            use_vision: bool = True,
-            save_conversation_path: Optional[str] = None,
-            max_failures: int = 5,
-            retry_delay: int = 10,
-            system_prompt_class: Type[SystemPrompt] = SystemPrompt,
-            agent_prompt_class: Type[AgentMessagePrompt] = AgentMessagePrompt,
-            max_input_tokens: int = 128000,
-            validate_output: bool = False,
-            include_attributes: list[str] = [
-                "title",
-                "type",
-                "name",
-                "role",
-                "tabindex",
-                "aria-label",
-                "placeholder",
-                "value",
-                "alt",
-                "aria-expanded",
-            ],
-            max_error_length: int = 400,
-            max_actions_per_step: int = 10,
-            tool_call_in_content: bool = True,
-            agent_state: AgentState = None,
-            initial_actions: Optional[List[Dict[str, Dict[str, Any]]]] = None,
-            # Cloud Callbacks
-            register_new_step_callback: Callable[['BrowserState', 'AgentOutput', int], None] | None = None,
-            register_done_callback: Callable[['AgentHistoryList'], None] | None = None,
-            tool_calling_method: Optional[str] = 'auto',
+        self,
+        task: str,
+        llm: BaseChatModel,
+        add_infos: str = "",
+        browser: Browser | None = None,
+        browser_context: BrowserContext | None = None,
+        controller: Controller = Controller(),
+        use_vision: bool = True,
+        save_conversation_path: Optional[str] = None,
+        max_failures: int = 5,
+        retry_delay: int = 10,
+        system_prompt_class: Type[SystemPrompt] = SystemPrompt,
+        agent_prompt_class: Type[AgentMessagePrompt] = AgentMessagePrompt,
+        max_input_tokens: int = 128000,
+        validate_output: bool = False,
+        include_attributes: list[str] = [
+            "title",
+            "type",
+            "name",
+            "role",
+            "tabindex",
+            "aria-label",
+            "placeholder",
+            "value",
+            "alt",
+            "aria-expanded",
+        ],
+        max_error_length: int = 400,
+        max_actions_per_step: int = 10,
+        tool_call_in_content: bool = True,
+        agent_state: AgentState = None,
+        initial_actions: Optional[List[Dict[str, Dict[str, Any]]]] = None,
+        # Cloud Callbacks
+        register_new_step_callback: (
+            Callable[["BrowserState", "AgentOutput", int], None] | None
+        ) = None,
+        register_done_callback: Callable[["AgentHistoryList"], None] | None = None,
+        tool_calling_method: Optional[str] = "auto",
     ):
         super().__init__(
             task=task,
@@ -99,7 +101,7 @@ class CustomAgent(Agent):
             initial_actions=initial_actions,
             register_new_step_callback=register_new_step_callback,
             register_done_callback=register_done_callback,
-            tool_calling_method=tool_calling_method
+            tool_calling_method=tool_calling_method,
         )
         if self.model_name in ["deepseek-reasoner"] or "deepseek-r1" in self.model_name:
             # deepseek-reasoner does not support function calling
@@ -108,7 +110,7 @@ class CustomAgent(Agent):
             self.max_input_tokens = 64000
         else:
             self.use_deepseek_r1 = False
-        
+
         # record last actions
         self._last_actions = None
         # record extract content
@@ -127,7 +129,7 @@ class CustomAgent(Agent):
             max_input_tokens=self.max_input_tokens,
             include_attributes=self.include_attributes,
             max_error_length=self.max_error_length,
-            max_actions_per_step=self.max_actions_per_step
+            max_actions_per_step=self.max_actions_per_step,
         )
 
     def _setup_action_models(self) -> None:
@@ -158,7 +160,7 @@ class CustomAgent(Agent):
             )
 
     def update_step_info(
-            self, model_output: CustomAgentOutput, step_info: CustomAgentStepInfo = None
+        self, model_output: CustomAgentOutput, step_info: CustomAgentStepInfo = None
     ):
         """
         update step info
@@ -169,9 +171,9 @@ class CustomAgent(Agent):
         step_info.step_number += 1
         important_contents = model_output.current_state.important_contents
         if (
-                important_contents
-                and "None" not in important_contents
-                and important_contents not in step_info.memory
+            important_contents
+            and "None" not in important_contents
+            and important_contents not in step_info.memory
         ):
             step_info.memory += important_contents + "\n"
 
@@ -209,16 +211,16 @@ class CustomAgent(Agent):
         ai_content = repair_json(ai_content)
         parsed_json = json.loads(ai_content)
         parsed: AgentOutput = self.AgentOutput(**parsed_json)
-        
+
         if parsed is None:
             logger.debug(ai_message.content)
-            raise ValueError('Could not parse response.')
+            raise ValueError("Could not parse response.")
 
         # Limit actions to maximum allowed per step
         parsed.action = parsed.action[: self.max_actions_per_step]
         self._log_response(parsed)
         self.n_steps += 1
-        
+
         return parsed
 
     @time_execution_async("--step")
@@ -231,7 +233,9 @@ class CustomAgent(Agent):
 
         try:
             state = await self.browser_context.get_state(use_vision=self.use_vision)
-            self.message_manager.add_state_message(state, self._last_actions, self._last_result, step_info)
+            self.message_manager.add_state_message(
+                state, self._last_actions, self._last_result, step_info
+            )
             input_messages = self.message_manager.get_messages()
             try:
                 model_output = await self.get_next_action(input_messages)
@@ -255,14 +259,24 @@ class CustomAgent(Agent):
             if len(result) != len(actions):
                 # I think something changes, such information should let LLM know
                 for ri in range(len(result), len(actions)):
-                    result.append(ActionResult(extracted_content=None,
-                                                include_in_memory=True,
-                                                error=f"{actions[ri].model_dump_json(exclude_unset=True)} is Failed to execute. \
+                    result.append(
+                        ActionResult(
+                            extracted_content=None,
+                            include_in_memory=True,
+                            error=f"{actions[ri].model_dump_json(exclude_unset=True)} is Failed to execute. \
                                                     Something new appeared after action {actions[len(result) - 1].model_dump_json(exclude_unset=True)}",
-                                                is_done=False))
+                            is_done=False,
+                        )
+                    )
             if len(actions) == 0:
                 # TODO: fix no action case
-                result = [ActionResult(is_done=True, extracted_content=step_info.memory, include_in_memory=True)]
+                result = [
+                    ActionResult(
+                        is_done=True,
+                        extracted_content=step_info.memory,
+                        include_in_memory=True,
+                    )
+                ]
             for ret_ in result:
                 if "Extracted page" in ret_.extracted_content:
                     # record every extracted page
@@ -282,14 +296,22 @@ class CustomAgent(Agent):
             self._last_result = result
 
         finally:
-            actions = [a.model_dump(exclude_unset=True) for a in model_output.action] if model_output else []
+            actions = (
+                [a.model_dump(exclude_unset=True) for a in model_output.action]
+                if model_output
+                else []
+            )
             self.telemetry.capture(
                 AgentStepTelemetryEvent(
                     agent_id=self.agent_id,
                     step=self.n_steps,
                     actions=actions,
                     consecutive_failures=self.consecutive_failures,
-                    step_error=[r.error for r in result if r.error] if result else ['No result'],
+                    step_error=(
+                        [r.error for r in result if r.error]
+                        if result
+                        else ["No result"]
+                    ),
                 )
             )
             if not result:
@@ -305,7 +327,11 @@ class CustomAgent(Agent):
 
             # Execute initial actions if provided
             if self.initial_actions:
-                result = await self.controller.multi_act(self.initial_actions, self.browser_context, check_for_new_elements=False)
+                result = await self.controller.multi_act(
+                    self.initial_actions,
+                    self.browser_context,
+                    check_for_new_elements=False,
+                )
                 self._last_result = result
 
             step_info = CustomAgentStepInfo(
@@ -315,7 +341,7 @@ class CustomAgent(Agent):
                 max_steps=max_steps,
                 memory="",
                 task_progress="",
-                future_plans=""
+                future_plans="",
             )
 
             for step in range(max_steps):
@@ -327,7 +353,9 @@ class CustomAgent(Agent):
 
                 # 2) Store last valid state before step
                 if self.browser_context and self.agent_state:
-                    state = await self.browser_context.get_state(use_vision=self.use_vision)
+                    state = await self.browser_context.get_state(
+                        use_vision=self.use_vision
+                    )
                     self.agent_state.set_last_valid_state(state)
 
                 if self._too_many_failures():
@@ -338,7 +366,7 @@ class CustomAgent(Agent):
 
                 if self.history.is_done():
                     if (
-                            self.validate_output and step < max_steps - 1
+                        self.validate_output and step < max_steps - 1
                     ):  # if last step, we dont need to validate
                         if not await self._validate_output():
                             continue
@@ -348,9 +376,13 @@ class CustomAgent(Agent):
             else:
                 logger.info("❌ Failed to complete task in maximum steps")
                 if not self.extracted_content:
-                    self.history.history[-1].result[-1].extracted_content = step_info.memory
+                    self.history.history[-1].result[
+                        -1
+                    ].extracted_content = step_info.memory
                 else:
-                    self.history.history[-1].result[-1].extracted_content = self.extracted_content
+                    self.history.history[-1].result[
+                        -1
+                    ].extracted_content = self.extracted_content
 
             return self.history
 
@@ -372,7 +404,7 @@ class CustomAgent(Agent):
                 await self.browser.close()
 
             if self.generate_gif:
-                output_path: str = 'agent_history.gif'
+                output_path: str = "agent_history.gif"
                 if isinstance(self.generate_gif, str):
                     output_path = self.generate_gif
 
@@ -388,11 +420,11 @@ class CustomAgent(Agent):
                 if last_state:
                     # Convert to BrowserStateHistory
                     state = BrowserStateHistory(
-                        url=getattr(last_state, 'url', ""),
-                        title=getattr(last_state, 'title', ""),
-                        tabs=getattr(last_state, 'tabs', []),
+                        url=getattr(last_state, "url", ""),
+                        title=getattr(last_state, "title", ""),
+                        tabs=getattr(last_state, "tabs", []),
                         interacted_element=[None],
-                        screenshot=getattr(last_state, 'screenshot', None)
+                        screenshot=getattr(last_state, "screenshot", None),
                     )
                 else:
                     state = self._create_empty_state()
@@ -403,7 +435,7 @@ class CustomAgent(Agent):
             stop_history = AgentHistory(
                 model_output=None,
                 state=state,
-                result=[ActionResult(extracted_content=None, error=None, is_done=True)]
+                result=[ActionResult(extracted_content=None, error=None, is_done=True)],
             )
             self.history.history.append(stop_history)
 
@@ -414,31 +446,27 @@ class CustomAgent(Agent):
             stop_history = AgentHistory(
                 model_output=None,
                 state=state,
-                result=[ActionResult(extracted_content=None, error=None, is_done=True)]
+                result=[ActionResult(extracted_content=None, error=None, is_done=True)],
             )
             self.history.history.append(stop_history)
 
     def _convert_to_browser_state_history(self, browser_state):
         return BrowserStateHistory(
-            url=getattr(browser_state, 'url', ""),
-            title=getattr(browser_state, 'title', ""),
-            tabs=getattr(browser_state, 'tabs', []),
+            url=getattr(browser_state, "url", ""),
+            title=getattr(browser_state, "title", ""),
+            tabs=getattr(browser_state, "tabs", []),
             interacted_element=[None],
-            screenshot=getattr(browser_state, 'screenshot', None)
+            screenshot=getattr(browser_state, "screenshot", None),
         )
 
     def _create_empty_state(self):
         return BrowserStateHistory(
-            url="",
-            title="",
-            tabs=[],
-            interacted_element=[None],
-            screenshot=None
+            url="", title="", tabs=[], interacted_element=[None], screenshot=None
         )
 
     def create_history_gif(
         self,
-        output_path: str = 'agent_history.gif',
+        output_path: str = "agent_history.gif",
         duration: int = 3000,
         show_goals: bool = True,
         show_task: bool = True,
@@ -451,26 +479,29 @@ class CustomAgent(Agent):
     ) -> None:
         """Create a GIF from the agent's history with overlaid task and goal text."""
         if not self.history.history:
-            logger.warning('No history to create GIF from')
+            logger.warning("No history to create GIF from")
             return
 
         images = []
         # if history is empty or first screenshot is None, we can't create a gif
         if not self.history.history or not self.history.history[0].state.screenshot:
-            logger.warning('No history or first screenshot to create GIF from')
+            logger.warning("No history or first screenshot to create GIF from")
             return
 
         # Try to load nicer fonts
         try:
             # Try different font options in order of preference
-            font_options = ['Helvetica', 'Arial', 'DejaVuSans', 'Verdana']
+            font_options = ["Helvetica", "Arial", "DejaVuSans", "Verdana"]
             font_loaded = False
 
             for font_name in font_options:
                 try:
-                    if platform.system() == 'Windows':
+                    if platform.system() == "Windows":
                         # Need to specify the abs font path on Windows
-                        font_name = os.path.join(os.getenv('WIN_FONT_DIR', 'C:\\Windows\\Fonts'), font_name + '.ttf')
+                        font_name = os.path.join(
+                            os.getenv("WIN_FONT_DIR", "C:\\Windows\\Fonts"),
+                            font_name + ".ttf",
+                        )
                     regular_font = ImageFont.truetype(font_name, font_size)
                     title_font = ImageFont.truetype(font_name, title_font_size)
                     goal_font = ImageFont.truetype(font_name, goal_font_size)
@@ -480,7 +511,7 @@ class CustomAgent(Agent):
                     continue
 
             if not font_loaded:
-                raise OSError('No preferred fonts found')
+                raise OSError("No preferred fonts found")
 
         except OSError:
             regular_font = ImageFont.load_default()
@@ -492,14 +523,14 @@ class CustomAgent(Agent):
         logo = None
         if show_logo:
             try:
-                logo = Image.open('./static/browser-use.png')
+                logo = Image.open("./static/browser-use.png")
                 # Resize logo to be small (e.g., 40px height)
                 logo_height = 150
                 aspect_ratio = logo.width / logo.height
                 logo_width = int(logo_height * aspect_ratio)
                 logo = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
             except Exception as e:
-                logger.warning(f'Could not load logo: {e}')
+                logger.warning(f"Could not load logo: {e}")
 
         # Create task frame if requested
         if show_task and self.task:
@@ -545,6 +576,6 @@ class CustomAgent(Agent):
                 loop=0,
                 optimize=False,
             )
-            logger.info(f'Created GIF at {output_path}')
+            logger.info(f"Created GIF at {output_path}")
         else:
-            logger.warning('No images found in history to create GIF')
+            logger.warning("No images found in history to create GIF")

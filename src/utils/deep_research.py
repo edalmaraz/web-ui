@@ -151,7 +151,9 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
     record_messages = [SystemMessage(content=record_system_prompt)]
 
     search_iteration = 0
-    max_search_iterations = kwargs.get("max_search_iterations", 10)  # Limit search iterations to prevent infinite loop
+    max_search_iterations = kwargs.get(
+        "max_search_iterations", 10
+    )  # Limit search iterations to prevent infinite loop
     use_vision = kwargs.get("use_vision", False)
 
     history_query = []
@@ -170,7 +172,9 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
                 logger.info("🤯 Start Search Deep Thinking: ")
                 logger.info(ai_query_msg.reasoning_content)
                 logger.info("🤯 End Search Deep Thinking")
-            ai_query_content = ai_query_msg.content.replace("```json", "").replace("```", "")
+            ai_query_content = ai_query_msg.content.replace("```json", "").replace(
+                "```", ""
+            )
             ai_query_content = repair_json(ai_query_content)
             ai_query_content = json.loads(ai_query_content)
             query_plan = ai_query_content["plan"]
@@ -187,8 +191,10 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
 
             # 2. Perform Web Search and Auto exec
             # Parallel BU agents
-            add_infos = "1. Please click on the most relevant link to get information and go deeper, instead of just staying on the search page. \n" \
-                        "2. When opening a PDF file, please remember to extract the content using extract_content instead of simply opening it for the user to view.\n"
+            add_infos = (
+                "1. Please click on the most relevant link to get information and go deeper, instead of just staying on the search page. \n"
+                "2. When opening a PDF file, please remember to extract the content using extract_content instead of simply opening it for the user to view.\n"
+            )
             if use_own_browser:
                 agent = CustomAgent(
                     task=query_tasks[0],
@@ -201,7 +207,7 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
                     agent_prompt_class=CustomAgentMessagePrompt,
                     max_actions_per_step=5,
                     controller=controller,
-                    agent_state=agent_state
+                    agent_state=agent_state,
                 )
                 agent_result = await agent.run(max_steps=kwargs.get("max_steps", 10))
                 query_results = [agent_result]
@@ -213,21 +219,28 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
                     await page.close()
 
             else:
-                agents = [CustomAgent(
-                    task=task,
-                    llm=llm,
-                    add_infos=add_infos,
-                    browser=browser,
-                    browser_context=browser_context,
-                    use_vision=use_vision,
-                    system_prompt_class=CustomSystemPrompt,
-                    agent_prompt_class=CustomAgentMessagePrompt,
-                    max_actions_per_step=5,
-                    controller=controller,
-                    agent_state=agent_state
-                ) for task in query_tasks]
+                agents = [
+                    CustomAgent(
+                        task=task,
+                        llm=llm,
+                        add_infos=add_infos,
+                        browser=browser,
+                        browser_context=browser_context,
+                        use_vision=use_vision,
+                        system_prompt_class=CustomSystemPrompt,
+                        agent_prompt_class=CustomAgentMessagePrompt,
+                        max_actions_per_step=5,
+                        controller=controller,
+                        agent_state=agent_state,
+                    )
+                    for task in query_tasks
+                ]
                 query_results = await asyncio.gather(
-                    *[agent.run(max_steps=kwargs.get("max_steps", 10)) for agent in agents])
+                    *[
+                        agent.run(max_steps=kwargs.get("max_steps", 10))
+                        for agent in agents
+                    ]
+                )
 
             if agent_state and agent_state.is_stop_requested():
                 # Stop
@@ -239,7 +252,9 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
                 query_result = query_results[i].final_result()
                 if not query_result:
                     continue
-                querr_save_path = os.path.join(query_result_dir, f"{search_iteration}-{i}.md")
+                querr_save_path = os.path.join(
+                    query_result_dir, f"{search_iteration}-{i}.md"
+                )
                 logger.info(f"save query: {query_tasks[i]} at {querr_save_path}")
                 with open(querr_save_path, "w", encoding="utf-8") as fw:
                     fw.write(f"Query: {query_tasks[i]}\n")
@@ -251,11 +266,13 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
                         continue
                     else:
                         # TODO: limit content lenght: 128k tokens, ~3 chars per token
-                        query_result_ = query_result_[:128000 * 3]
+                        query_result_ = query_result_[: 128000 * 3]
                     history_infos_ = json.dumps(history_infos, indent=4)
                     record_prompt = f"User Instruction:{task}. \nPrevious Recorded Information:\n {history_infos_}\n Current Search Iteration: {search_iteration}\n Current Search Plan:\n{query_plan}\n Current Search Query:\n {query_tasks[i]}\n Current Search Results: {query_result_}\n "
                     record_messages.append(HumanMessage(content=record_prompt))
-                    ai_record_msg = llm.invoke(record_messages[:1] + record_messages[-1:])
+                    ai_record_msg = llm.invoke(
+                        record_messages[:1] + record_messages[-1:]
+                    )
                     record_messages.append(ai_record_msg)
                     if hasattr(ai_record_msg, "reasoning_content"):
                         logger.info("🤯 Start Record Deep Thinking: ")
@@ -281,11 +298,12 @@ Provide your output as a JSON formatted list. Each item in the list must adhere 
             await browser_context.close()
         logger.info("Browser closed.")
 
+
 async def generate_final_report(task, history_infos, save_dir, llm, error_msg=None):
     """Generate report from collected information with error handling"""
     try:
         logger.info("\nAttempting to generate final report from collected data...")
-        
+
         writer_system_prompt = """
         You are a **Deep Researcher** and a professional report writer tasked with creating polished, high-quality reports that fully meet the user's needs, based on the user's instructions and the relevant information provided. You will write the report using Markdown format, ensuring it is both informative and visually appealing.
 
@@ -322,24 +340,35 @@ async def generate_final_report(task, history_infos, save_dir, llm, error_msg=No
         logger.info(f"save All recorded information at {record_json_path}")
         with open(record_json_path, "w") as fw:
             json.dump(history_infos, fw, indent=4)
-        report_prompt = f"User Instruction:{task} \n Search Information:\n {history_infos_}"
-        report_messages = [SystemMessage(content=writer_system_prompt),
-                           HumanMessage(content=report_prompt)]  # New context for report generation
+        report_prompt = (
+            f"User Instruction:{task} \n Search Information:\n {history_infos_}"
+        )
+        report_messages = [
+            SystemMessage(content=writer_system_prompt),
+            HumanMessage(content=report_prompt),
+        ]  # New context for report generation
         ai_report_msg = llm.invoke(report_messages)
         if hasattr(ai_report_msg, "reasoning_content"):
             logger.info("🤯 Start Report Deep Thinking: ")
             logger.info(ai_report_msg.reasoning_content)
             logger.info("🤯 End Report Deep Thinking")
         report_content = ai_report_msg.content
-        report_content = re.sub(r"^```\s*markdown\s*|^\s*```|```\s*$", "", report_content, flags=re.MULTILINE)
+        report_content = re.sub(
+            r"^```\s*markdown\s*|^\s*```|```\s*$",
+            "",
+            report_content,
+            flags=re.MULTILINE,
+        )
         report_content = report_content.strip()
 
         # Add error notification to the report
         if error_msg:
-            report_content = f"## ⚠️ Research Incomplete - Partial Results\n" \
-                            f"**The research process was interrupted by an error:** {error_msg}\n\n" \
-                            f"{report_content}"
-            
+            report_content = (
+                f"## ⚠️ Research Incomplete - Partial Results\n"
+                f"**The research process was interrupted by an error:** {error_msg}\n\n"
+                f"{report_content}"
+            )
+
         report_file_path = os.path.join(save_dir, "final_report.md")
         with open(report_file_path, "w", encoding="utf-8") as f:
             f.write(report_content)

@@ -25,9 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 class CustomController(Controller):
-    def __init__(self, exclude_actions: list[str] = [],
-                 output_model: Optional[Type[BaseModel]] = None
-                 ):
+    def __init__(
+        self,
+        exclude_actions: list[str] = [],
+        output_model: Optional[Type[BaseModel]] = None,
+    ):
         super().__init__(exclude_actions=exclude_actions, output_model=output_model)
         self._register_custom_actions()
 
@@ -49,23 +51,25 @@ class CustomController(Controller):
             return ActionResult(extracted_content=text)
 
         @self.registry.action(
-            'Extract page content to get the pure text or markdown with links if include_links is set to true',
+            "Extract page content to get the pure text or markdown with links if include_links is set to true",
             param_model=ExtractPageContentAction,
             requires_browser=True,
         )
-        async def extract_content(params: ExtractPageContentAction, browser: BrowserContext):
+        async def extract_content(
+            params: ExtractPageContentAction, browser: BrowserContext
+        ):
             page = await browser.get_current_page()
             # use jina reader
             url = page.url
             jina_url = f"https://r.jina.ai/{url}"
             await page.goto(jina_url)
-            output_format = 'markdown' if params.include_links else 'text'
+            output_format = "markdown" if params.include_links else "text"
             content = MainContentExtractor.extract(  # type: ignore
                 html=await page.content(),
                 output_format=output_format,
             )
             # go back to org url
             await page.go_back()
-            msg = f'Extracted page content:\n {content}\n'
+            msg = f"Extracted page content:\n {content}\n"
             logger.info(msg)
             return ActionResult(extracted_content=msg)

@@ -1,3 +1,6 @@
+"""
+Web UI Launcher with Model Configuration
+"""
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
@@ -6,6 +9,8 @@ import json
 import subprocess
 import platform
 from pathlib import Path
+from src.ui.model_config_ui import ModelConfigUI
+from src.agents.agent_manager_ui import AgentManagerUI
 
 class WebUILauncher:
     def __init__(self):
@@ -108,6 +113,16 @@ class WebUILauncher:
         browser_options_frame.pack(fill=tk.X, pady=2)
         ttk.Checkbutton(browser_options_frame, text="Use Own Browser", variable=self.use_own_browser_var).pack(side=tk.LEFT)
         ttk.Checkbutton(browser_options_frame, text="Keep Browser Open", variable=self.keep_browser_open_var).pack(side=tk.LEFT)
+        
+        # Model Configuration Tab
+        model_frame = ttk.Frame(main_frame)
+        model_frame.pack(fill=tk.X, pady=2)
+        self.model_config = ModelConfigUI(model_frame)
+        
+        # Agent Manager Tab
+        agent_frame = ttk.Frame(main_frame)
+        agent_frame.pack(fill=tk.X, pady=2)
+        self.agent_manager = AgentManagerUI(agent_frame)
         
         # Preview Command
         self.create_section_label(main_frame, "Launch Command Preview")
